@@ -1,3 +1,4 @@
+from typing import Dict, List, Callable
 from enum import Enum
 
 """
@@ -19,5 +20,27 @@ class WeaponType(Enum):
     CATALYST = 5
 
 
-class BaseWeapon:
-    pass
+class Weapon:
+    def __init__(self, stats):
+        self.name = stats["name"]
+        self.stats = stats
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    def __repr__(self) -> str:
+        return f"{self.name}"
+
+
+def EngulfingLightingCallback(character):
+    character.stats["attack_percentage"] += min(
+        0.8, (character.stats["energy_recharge"] - 1) * 0.28)
+
+
+EngulfingLighting = Weapon({
+    "name": "Engulfing Lighting",
+    "base_attack": 608.0745972,
+    "main_attribute": "energy_recharge",
+    "main_attribute_value": 0.55128,
+    "secondary_attribute": EngulfingLightingCallback
+})
