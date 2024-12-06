@@ -32,9 +32,9 @@ class Weapon:
         return f"{self.name}"
 
 
-def EngulfingLightingCallback(character):
-    character.stats["attack_percentage"] += min(
-        0.8, (character.stats["energy_recharge"] - 1) * 0.28)
+def EngulfingLightingCallback(stats: dict):
+    stats["attack_percentage"] += min(
+        0.8, (stats["energy_recharge"] - 1) * 0.28)
 
 
 EngulfingLighting = Weapon({

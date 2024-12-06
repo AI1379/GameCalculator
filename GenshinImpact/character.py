@@ -32,12 +32,13 @@ class Damage:
 
     def calculate_damage(self) -> int:
         # Base damage
-        result = self.stats["attack"] * self.stats["skill_coefficient"]
+        result = self.stats["attack"] * \
+            self.stats["skill_coefficient"] + self.stats["extra_damage"]
         # Expected CRIT damage
         result *= (1+self.stats["crit_dmg"]*self.stats["crit_rate"])
         # Damage bonus
         result *= (1+self.stats["elemental_bonus"]+self.stats["dmg_bonus"])
-        # Element reaction
+        # Enhance element reaction: Melt, Vaporize
         result *= (1 + self.stats["extra_reaction_coefficient"] +
                    self.stats["elemental_mastery_coefficient"]) * \
             (1 + self.stats["reaction_coefficient"]) * \
@@ -61,6 +62,16 @@ class Damage:
         result *= defence_coefficient
 
         return result
+
+
+def enhance_reaction_coefficient(em):
+    return em * 2.785 / (em + 1404.5)
+
+# TODO: Level base coefficient
+
+
+def catalyst_coefficient(em):
+    return em * 5 / (em + 1200)
 
 
 """
@@ -104,12 +115,8 @@ class Character:
         for key in attributes.keys():
             self.stats[key] = attributes[key]
 
-    # Return the coefficient of the elemental mastery
-
-    def elemental_mastery_coefficient(self):
-        return self.stats["elemental_mastery"] * 2.785 / (self.stats["elemental_mastery"] + 1404.5)
-
     # Return current attack of the character
+
     def current_attack(self):
         return self.stats["base_attack"] * (1 + self.stats["attack_percentage"]) + self.stats["fixed_attack"]
 
@@ -133,36 +140,37 @@ class Character:
         if num >= 4:
             self.hooks.append(artifact_set.stats["set_attribute_4"])
 
-    def run_hooks(self):
-        cp = copy.deepcopy(self)
-        for hook in cp.hooks:
+    def current_stats(self):
+        cp = copy.deepcopy(self.stats)
+        for hook in self.hooks:
             hook(cp)
         return cp
 
     # Return the damage dealt to the enemy
-    def attack(self, enemy: Enemy) -> int:
-        original_stats = copy.deepcopy(self.stats)
-        for hook in self.hooks:
-            hook(self)
+    def attack(self, enemy: Enemy, **kwargs) -> int:
+        stats = self.current_stats()
+        elem = self.element
+        if "element" in kwargs.keys():
+            elem = kwargs["element"]
         dmg = Damage({
-            "type": self.element,
-            "attack": self.current_attack(),
-            "crit_rate": self.stats["crit_rate"],
-            "crit_dmg": self.stats["crit_dmg"],
-            "elemental_bonus": self.stats["elemental_bonus"][self.element.value],
-            "dmg_bonus": self.stats["dmg_bonus"],
-            "defense_reduction": self.stats["defense_reduction"],
-            "defense_ignore": self.stats["defense_ignore"],
+            "type": elem,
+            "attack": stats["base_attack"] * (1 + stats["attack_percentage"]) + stats["fixed_attack"],
+            "crit_rate": stats["crit_rate"],
+            "crit_dmg": stats["crit_dmg"],
+            "extra_damage": 0,
+            "elemental_bonus": stats["elemental_bonus"][elem.value],
+            "dmg_bonus": stats["dmg_bonus"],
+            "defense_reduction": stats["defense_reduction"],
+            "defense_ignore": stats["defense_ignore"],
             "enemy_resistance": enemy.stats["resistance"],
-            "character_level": self.stats["level"],
+            "character_level": stats["level"],
             "enemy_level": enemy.stats["level"],
             "extra_reaction_coefficient": 0,
-            "reaction_coefficient": self.stats["reaction_coefficient"],
-            "reaction_rate": self.stats["reaction_rate"],
-            "elemental_mastery_coefficient": self.elemental_mastery_coefficient(),
-            "skill_coefficient": self.stats["skill_coefficient"]
+            "reaction_coefficient": stats["reaction_coefficient"],
+            "reaction_rate": stats["reaction_rate"],
+            "elemental_mastery_coefficient": enhance_reaction_coefficient(stats["elemental_mastery"]),
+            "skill_coefficient": stats["skill_coefficient"]
         })
-        self.stats = original_stats
         return dmg.calculate_damage()
 
 
