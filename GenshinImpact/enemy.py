@@ -1,7 +1,7 @@
-from . element import ElementType
+from .element import ElementType
+from .timeline import *
 
-
-class Enemy:
+class Enemy(Listener):
     def __init__(self,  stats):
         self.name = stats['name']
         self.stats = stats

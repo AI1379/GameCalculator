@@ -1,5 +1,6 @@
 from typing import Dict, List, Callable
 from enum import Enum
+from .timeline import *
 
 """
 States of the weapon:
@@ -20,7 +21,7 @@ class WeaponType(Enum):
     CATALYST = 5
 
 
-class Weapon:
+class Weapon(Listener):
     def __init__(self, stats):
         self.name = stats["name"]
         self.stats = stats

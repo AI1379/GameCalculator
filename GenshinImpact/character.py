@@ -90,9 +90,10 @@ dmg_bonus: list // dmg_bonus[ELEMENT] = float. ELEMENT == 0 means physical damag
 """
 
 
-class Character:
-    def __init__(self, timeline: Timeline, stats):
-        self.timeline = timeline
+class Character(Listener):
+    def __init__(self, stats, timeline: Timeline = None):
+        if timeline is not None:
+            super().__init__(timeline)
         self.name = stats["name"]
         self.element = stats["element"]
         self.weapon_type = stats["weapon_type"]
@@ -112,6 +113,9 @@ class Character:
 
     def __str__(self) -> str:
         return f"{self.name}"
+
+    def attach(self, timeline: Timeline):
+        super().attach(timeline)
 
     def append_attributes(self, attributes: dict):
         for key in attributes.keys():

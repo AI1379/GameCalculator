@@ -32,6 +32,12 @@ class Listener:
         self.timeline = timeline
         timeline.listeners.append(self)
         self.listening = []
+        
+    def attach(self, timeline):
+        if self.timeline:
+            self.timeline.listeners.remove(self)
+        self.timeline = timeline
+        timeline.listeners.append(self)
 
     def listen(self, event, callback):
         if isinstance(event, Event):
