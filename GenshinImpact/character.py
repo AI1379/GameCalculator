@@ -4,6 +4,7 @@ from .element import ElementType
 from .enemy import Enemy
 from .weapon import WeaponType, Weapon
 from .artifacts import Artifact, ArtifactSet
+from .timeline import *
 
 """
 States of damage:
@@ -90,7 +91,8 @@ dmg_bonus: list // dmg_bonus[ELEMENT] = float. ELEMENT == 0 means physical damag
 
 
 class Character:
-    def __init__(self,  stats):
+    def __init__(self, timeline: Timeline, stats):
+        self.timeline = timeline
         self.name = stats["name"]
         self.element = stats["element"]
         self.weapon_type = stats["weapon_type"]
@@ -144,6 +146,9 @@ class Character:
         cp = copy.deepcopy(self.stats)
         for hook in self.hooks:
             hook(cp)
+        # Cap crit_rate
+        if cp["crit_rate"] > 1:
+            cp["crit_rate"] = 1
         return cp
 
     # Return the damage dealt to the enemy
