@@ -34,8 +34,10 @@ class Weapon(Listener):
 
 
 def EngulfingLightingCallback(stats: dict):
+    stats["energy_recharge"] += 0.3
     stats["attack_percentage"] += min(
         0.8, (stats["energy_recharge"] - 1) * 0.28)
+    print(f"Add: {min(0.8, (stats["energy_recharge"] - 1) * 0.28)} with {stats['energy_recharge']}")
 
 
 EngulfingLighting = Weapon({

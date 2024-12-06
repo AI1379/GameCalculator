@@ -1,9 +1,9 @@
 from typing import List, Dict
 import copy
-from .element import ElementType, EMPTY_ELEMENTS
+from .element import ElementType
 from .enemy import Enemy
 from .weapon import WeaponType, Weapon
-from .artifacts import Artifact, ArtifactSet
+from .artifacts import Artifact, ArtifactType
 from .timeline import *
 
 
@@ -11,13 +11,17 @@ def merge_stats(stats1: dict, stats2: dict) -> dict:
     res = copy.deepcopy(stats1)
     for key in stats2.keys():
         if key in stats1.keys():
-            if (isinstance(stats2[key], dict)):
-                res[key] = merge_stats(stats1[key], stats2[key])
-            elif (isinstance(stats2[key], list)):
-                res[key] = [stats1[key][i] + stats2[key][i]
-                            for i in range(len(stats1[key]))]
-            else:
-                res[key] += stats2[key]
+            res[key] += stats2[key]
+        else:
+            res[key] = stats2[key]
+    return res
+
+
+def remove_stats(stats1: dict, stats2: dict) -> dict:
+    res = copy.deepcopy(stats1)
+    for key in stats2.keys():
+        if key in stats1.keys():
+            res[key] -= stats2[key]
         else:
             res[key] = stats2[key]
     return res
@@ -27,12 +31,7 @@ def set_stats(stats1: dict, stats2: dict) -> dict:
     res = copy.deepcopy(stats1)
     for key in stats2.keys():
         if key in stats1.keys():
-            if (isinstance(stats2[key], dict)):
-                res[key] = set_stats(stats1[key], stats2[key])
-            elif (isinstance(stats2[key], list)):
-                res[key] = copy.deepcopy(stats2[key])
-            else:
-                res[key] = stats2[key]
+            res[key] = stats2[key]
         else:
             res[key] = stats2[key]
     return res
@@ -89,11 +88,11 @@ class Damage:
         else:
             res_coefficient = 0  # Immune
         result *= res_coefficient
-        # Defence
-        defence_coefficient = (100 + self.stats["character_level"]) / (
+        # defense
+        defense_coefficient = (100 + self.stats["character_level"]) / (
             (self.stats["character_level"] + 100) +
             (self.stats["enemy_level"] + 100) * (1 - self.stats["defense_ignore"]) * (1 - self.stats["defense_reduction"]))
-        result *= defence_coefficient
+        result *= defense_coefficient
 
         return result
 
@@ -127,11 +126,22 @@ class Character(Listener):
     BASE_STATS = {
         "crit_rate": 0.05,
         "crit_dmg": 0.5,
-        "energy_recharge": 0,
+        "energy_recharge": 1,
         "elemental_mastery": 0,
         "attack_percentage": 0,
         "fixed_attack": 0,
-        "elemental_bonus": EMPTY_ELEMENTS,
+        "hp_percentage": 0,
+        "fixed_hp": 0,
+        "defense_percentage": 0,
+        "fixed_defense": 0,
+        "physical_bonus": 0,
+        "pyro_bonus": 0,
+        "hydro_bonus": 0,
+        "dendro_bonus": 0,
+        "anemo_bonus": 0,
+        "electro_bonus": 0,
+        "cryo_bonus": 0,
+        "geo_bonus": 0,
         "dmg_bonus": 0,
         "reaction_rate": 0
     }
@@ -143,6 +153,14 @@ class Character(Listener):
         self.element = stats["element"]
         self.weapon_type = stats["weapon_type"]
         self.stats = merge_stats(self.BASE_STATS, stats)
+        self.artifacts = {
+            ArtifactType.FLOWER: None,
+            ArtifactType.PLUME: None,
+            ArtifactType.SANDS: None,
+            ArtifactType.GOBLET: None,
+            ArtifactType.CIRCLET: None
+        }
+        self.artifacts_set_table = {}
         self.hooks = []
 
     def __str__(self) -> str:
@@ -153,14 +171,26 @@ class Character(Listener):
 
     def append_attributes(self, attributes: dict):
         self.stats = merge_stats(self.stats, attributes)
-        
+
     def set_attributes(self, attributes: dict):
         self.stats = set_stats(self.stats, attributes)
+
+    def append(self, **kwargs):
+        self.stats = merge_stats(self.stats, kwargs)
+
+    def set(self, **kwargs):
+        self.stats = set_stats(self.stats, kwargs)
 
     # Return current attack of the character
 
     def current_attack(self):
         return self.stats["base_attack"] * (1 + self.stats["attack_percentage"]) + self.stats["fixed_attack"]
+
+    def current_hp(self):
+        return self.stats["base_hp"] * (1 + self.stats["hp_percentage"]) + self.stats["fixed_hp"]
+
+    def current_defense(self):
+        return self.stats["base_defense"] * (1 + self.stats["defense_percentage"]) + self.stats["fixed_defense"]
 
     # Equip a weapon to the character
     def equip_weapon(self, weapon: Weapon):
@@ -168,22 +198,38 @@ class Character(Listener):
         self.stats["base_attack"] += weapon.stats["base_attack"]
         self.stats[weapon.stats["main_attribute"]
                    ] += weapon.stats["main_attribute_value"]
-        self.hooks.append(weapon.stats["secondary_attribute"])
 
     def equip_artifact(self, artifact: Artifact):
+        if self.artifacts[artifact.type] is not None:
+            for attr in self.artifacts[artifact.type].stats["attributes"]:
+                self.stats[attr["attribute"]] -= attr["value"]
+            if self.artifacts_set_table[self.artifacts[artifact.type].set] == 2:
+                self.hooks.remove(self.artifacts[artifact.type].set.bonus2)
+                self.stats = remove_stats(
+                    self.stats, self.artifacts[artifact.type].set.bonus2attributes)
+            elif self.artifacts_set_table[self.artifacts[artifact.type].set] == 4:
+                self.hooks.remove(self.artifacts[artifact.type].set.bonus4)
+                self.stats = remove_stats(
+                    self.stats, self.artifacts[artifact.type].set.bonus4attributes)
+            self.artifacts_set_table[self.artifacts[artifact.type].set] -= 1
+        self.artifacts[artifact.type] = artifact
         for attr in artifact.stats["attributes"]:
             self.stats[attr["attribute"]] += attr["value"]
-
-    def set_artifact_set(self, artifact_set: ArtifactSet, num):
-        for attr in artifact_set.stats["attributes"]:
-            self.stats[attr["attributes"]] += attr["value"]
-        if num >= 2:
-            self.hooks.append(artifact_set.stats["set_arrtibute_2"])
-        if num >= 4:
-            self.hooks.append(artifact_set.stats["set_attribute_4"])
+        if artifact.set not in self.artifacts_set_table.keys():
+            self.artifacts_set_table[artifact.set] = 0
+        self.artifacts_set_table[artifact.set] += 1
+        if self.artifacts_set_table[artifact.set] == 2:
+            self.hooks.append(artifact.set.bonus2)
+            self.stats = merge_stats(
+                self.stats, artifact.set.bonus2attributes)
+        elif self.artifacts_set_table[artifact.set] == 4:
+            self.hooks.append(artifact.set.bonus4)
+            self.stats = merge_stats(
+                self.stats, artifact.set.bonus4attributes)
 
     def current_stats(self):
         cp = copy.deepcopy(self.stats)
+        self.weapon.stats["secondary_attribute"](cp)
         for hook in self.hooks:
             hook(cp)
         # Cap crit_rate
@@ -203,7 +249,7 @@ class Character(Listener):
             "crit_rate": stats["crit_rate"],
             "crit_dmg": stats["crit_dmg"],
             "extra_damage": 0,
-            "elemental_bonus": stats["elemental_bonus"][elem],
+            "elemental_bonus": stats[f"{elem.name.lower()}_bonus"],
             "dmg_bonus": stats["dmg_bonus"],
             "defense_reduction": enemy.stats["defense_reduction"],
             "defense_ignore": stats["defense_ignore"],
@@ -226,7 +272,7 @@ Xiangling = Character({
     "level": 90,
     "base_hp": 10874.91499475576,
     "base_attack": 225.14102222725342,
-    "base_defence": 668.8711049900703,
+    "base_defense": 668.8711049900703,
     "elemental_mastery": 96,
     "reaction_coefficient": 0.5,
     "skill_coefficient": 2.38,

@@ -1,17 +1,23 @@
-import GenshinImpact
-import GenshinImpact.enemy
-import GenshinImpact.weapon
-import GenshinImpact.character
-import GenshinImpact.element
+import GenshinImpact.enemy as enemy
+import GenshinImpact.weapon as weapon
+import GenshinImpact.character as character
+import GenshinImpact.element as element
+import GenshinImpact.artifacts as artifacts
 import matplotlib.pyplot as plt
 
-character = GenshinImpact.character.Xiangling
-weapon = GenshinImpact.weapon.EngulfingLighting
+char = character.Xiangling
+wp = weapon.EngulfingLighting
 
 # print(character.stats)
 # print(weapon.stats)
-character.equip_weapon(weapon)
-# print(character.stats)
+char.equip_weapon(wp)
+
+char.equip_artifact(artifacts.flower)
+char.equip_artifact(artifacts.plume)
+char.equip_artifact(artifacts.sands)
+char.equip_artifact(artifacts.goblet)
+char.equip_artifact(artifacts.circlet)
+char.set(reaction_coefficient=0.5, reaction_rate=1)
 
 additional_attributes = {
     "crit_rate": 0.548,
@@ -23,16 +29,22 @@ additional_attributes = {
     "dmg_bonus": 2.926*0.25,
     "reaction_coefficient": 0.5,
     "reaction_rate": 1,
-    "elemental_bonus": {
-        GenshinImpact.element.ElementType.PYRO: 0.466
-    }
+    "pyro_bonus": 0.466,
 }
-character.set_attributes(additional_attributes)
-# print(character.stats)
 
-enemy = GenshinImpact.enemy.HydroTulpa
+# stats = char.current_stats()
+
+# for key, value in additional_attributes.items():
+#     if key in stats:
+#         if stats[key] != additional_attributes[key] and key != "elemental_bonus":
+#             print(key, stats[key], additional_attributes[key])
+
+# char.set_attributes(additional_attributes)
+print(char.current_stats())
+
+enem = enemy.HydroTulpa
 # print(enemy.stats)
-res = character.attack(enemy)
+res = char.attack(enem)
 print(res)
 
 
