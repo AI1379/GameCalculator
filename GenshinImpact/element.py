@@ -16,6 +16,18 @@ class ElementType(Enum):
     CATALYST = 9
 
 
+EMPTY_ELEMENTS = {
+    ElementType.PHYICAL: 0,
+    ElementType.PYRO: 0,
+    ElementType.HYDRO: 0,
+    ElementType.DENDRO: 0,
+    ElementType.ANEMO: 0,
+    ElementType.CRYO: 0,
+    ElementType.GEO: 0,
+    ElementType.ELECTRO: 0
+}
+
+
 class ElementTimer:
     def __init__(self, timeline: Timeline) -> None:
         self.timeline = timeline

@@ -22,10 +22,12 @@ additional_attributes = {
     "elemental_mastery": 157,
     "dmg_bonus": 2.926*0.25,
     "reaction_coefficient": 0.5,
-    "reaction_rate": 1
+    "reaction_rate": 1,
+    "elemental_bonus": {
+        GenshinImpact.element.ElementType.PYRO: 0.466
+    }
 }
-character.append_attributes(additional_attributes)
-character.stats["elemental_bonus"][GenshinImpact.element.ElementType.PYRO.value] = 0.466
+character.set_attributes(additional_attributes)
 # print(character.stats)
 
 enemy = GenshinImpact.enemy.HydroTulpa
@@ -34,15 +36,15 @@ res = character.attack(enemy)
 print(res)
 
 
-def dmg(atkpcg):
-    character.stats["attack_percentage"] = atkpcg
-    return character.attack(enemy)
+# def dmg(atkpcg):
+#     character.stats["attack_percentage"] = atkpcg
+#     return character.attack(enemy)
 
 
-fig, ax = plt.subplots()       # a figure with a single Axes
-em_lst = [i / 100 for i in range(1, 100)]
-dmg_lst = [dmg(em) for em in em_lst]
+# fig, ax = plt.subplots()       # a figure with a single Axes
+# em_lst = [i / 100 for i in range(1, 100)]
+# dmg_lst = [dmg(em) for em in em_lst]
 
-ax.plot(em_lst, dmg_lst)
+# ax.plot(em_lst, dmg_lst)
 
-plt.show()
+# plt.show()

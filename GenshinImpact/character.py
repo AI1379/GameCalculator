@@ -1,10 +1,42 @@
 from typing import List, Dict
 import copy
-from .element import ElementType
+from .element import ElementType, EMPTY_ELEMENTS
 from .enemy import Enemy
 from .weapon import WeaponType, Weapon
 from .artifacts import Artifact, ArtifactSet
 from .timeline import *
+
+
+def merge_stats(stats1: dict, stats2: dict) -> dict:
+    res = copy.deepcopy(stats1)
+    for key in stats2.keys():
+        if key in stats1.keys():
+            if (isinstance(stats2[key], dict)):
+                res[key] = merge_stats(stats1[key], stats2[key])
+            elif (isinstance(stats2[key], list)):
+                res[key] = [stats1[key][i] + stats2[key][i]
+                            for i in range(len(stats1[key]))]
+            else:
+                res[key] += stats2[key]
+        else:
+            res[key] = stats2[key]
+    return res
+
+
+def set_stats(stats1: dict, stats2: dict) -> dict:
+    res = copy.deepcopy(stats1)
+    for key in stats2.keys():
+        if key in stats1.keys():
+            if (isinstance(stats2[key], dict)):
+                res[key] = set_stats(stats1[key], stats2[key])
+            elif (isinstance(stats2[key], list)):
+                res[key] = copy.deepcopy(stats2[key])
+            else:
+                res[key] = stats2[key]
+        else:
+            res[key] = stats2[key]
+    return res
+
 
 """
 States of damage:
@@ -32,6 +64,7 @@ class Damage:
         self.stats = stats
 
     def calculate_damage(self) -> int:
+        print(self.stats)
         # Base damage
         result = self.stats["attack"] * \
             self.stats["skill_coefficient"] + self.stats["extra_damage"]
@@ -91,24 +124,25 @@ dmg_bonus: list // dmg_bonus[ELEMENT] = float. ELEMENT == 0 means physical damag
 
 
 class Character(Listener):
+    BASE_STATS = {
+        "crit_rate": 0.05,
+        "crit_dmg": 0.5,
+        "energy_recharge": 0,
+        "elemental_mastery": 0,
+        "attack_percentage": 0,
+        "fixed_attack": 0,
+        "elemental_bonus": EMPTY_ELEMENTS,
+        "dmg_bonus": 0,
+        "reaction_rate": 0
+    }
+
     def __init__(self, stats, timeline: Timeline = None):
         if timeline is not None:
             super().__init__(timeline)
         self.name = stats["name"]
         self.element = stats["element"]
         self.weapon_type = stats["weapon_type"]
-        self.stats = stats
-        self.stats["crit_rate"] = 0.05
-        self.stats["crit_dmg"] = 0.5
-        self.stats["energy_recharge"] = 0
-        self.stats["elemental_mastery"] = 0
-        self.stats["attack_percentage"] = 0
-        self.stats["fixed_attack"] = 0
-        self.stats["elemental_bonus"] = [0]*8
-        self.stats["dmg_bonus"] = 0
-        self.stats["reaction_rate"] = 0
-        self.stats[stats["secondary_attribute"]
-                   ] += stats["secondary_attribute_value"]
+        self.stats = merge_stats(self.BASE_STATS, stats)
         self.hooks = []
 
     def __str__(self) -> str:
@@ -118,8 +152,10 @@ class Character(Listener):
         super().attach(timeline)
 
     def append_attributes(self, attributes: dict):
-        for key in attributes.keys():
-            self.stats[key] = attributes[key]
+        self.stats = merge_stats(self.stats, attributes)
+        
+    def set_attributes(self, attributes: dict):
+        self.stats = set_stats(self.stats, attributes)
 
     # Return current attack of the character
 
@@ -167,9 +203,9 @@ class Character(Listener):
             "crit_rate": stats["crit_rate"],
             "crit_dmg": stats["crit_dmg"],
             "extra_damage": 0,
-            "elemental_bonus": stats["elemental_bonus"][elem.value],
+            "elemental_bonus": stats["elemental_bonus"][elem],
             "dmg_bonus": stats["dmg_bonus"],
-            "defense_reduction": stats["defense_reduction"],
+            "defense_reduction": enemy.stats["defense_reduction"],
             "defense_ignore": stats["defense_ignore"],
             "enemy_resistance": enemy.stats["resistance"],
             "character_level": stats["level"],
@@ -191,10 +227,8 @@ Xiangling = Character({
     "base_hp": 10874.91499475576,
     "base_attack": 225.14102222725342,
     "base_defence": 668.8711049900703,
-    "secondary_attribute": "elemental_mastery",
-    "secondary_attribute_value": 96,
+    "elemental_mastery": 96,
     "reaction_coefficient": 0.5,
     "skill_coefficient": 2.38,
-    "defense_reduction": 0,
     "defense_ignore": 0
 })

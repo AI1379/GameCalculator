@@ -1,6 +1,7 @@
 from .element import ElementType
 from .timeline import *
 
+
 class Enemy(Listener):
     def __init__(self,  stats):
         self.name = stats['name']
@@ -19,5 +20,6 @@ HydroTulpa = Enemy({
         ElementType.GEO: 0.1,
         ElementType.HYDRO: 100,
         ElementType.PYRO: 0.1
-    }
+    },
+    "defense_reduction": 0
 })
