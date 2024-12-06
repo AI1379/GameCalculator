@@ -33,10 +33,10 @@ class ArtifactSet:
     def __str__(self) -> str:
         return f"{self.name}"
 
-    def bonus2(self, stats: dict):
+    def bonus2(self, stats):
         pass
 
-    def bonus4(self, stats: dict):
+    def bonus4(self, stats):
         pass
 
 
@@ -68,10 +68,11 @@ class EmblemOfSeveredFate(ArtifactSet):
             "energy_recharge": 0.2
         }
 
-    def bonus2(self, stats: dict):
+    def bonus2(self, character):
         pass
 
-    def bonus4(self, stats: dict):
+    def bonus4(self, character):
+        stats = character.stats
         stats["dmg_bonus"] += min(0.75, stats["energy_recharge"] * 0.25)
 
 

@@ -199,7 +199,7 @@ class Character(Listener):
         self.stats[weapon.stats["main_attribute"]
                    ] += weapon.stats["main_attribute_value"]
 
-    def equip_artifact(self, artifact: Artifact):
+    def remove_artifact(self, artifact: Artifact):
         if self.artifacts[artifact.type] is not None:
             for attr in self.artifacts[artifact.type].stats["attributes"]:
                 self.stats[attr["attribute"]] -= attr["value"]
@@ -212,6 +212,11 @@ class Character(Listener):
                 self.stats = remove_stats(
                     self.stats, self.artifacts[artifact.type].set.bonus4attributes)
             self.artifacts_set_table[self.artifacts[artifact.type].set] -= 1
+            self.artifacts[artifact.type] = None
+
+    def equip_artifact(self, artifact: Artifact):
+        if self.artifacts[artifact.type] is not None:
+            self.remove_artifact(self.artifacts[artifact.type])
         self.artifacts[artifact.type] = artifact
         for attr in artifact.stats["attributes"]:
             self.stats[attr["attribute"]] += attr["value"]
@@ -227,15 +232,17 @@ class Character(Listener):
             self.stats = merge_stats(
                 self.stats, artifact.set.bonus4attributes)
 
-    def current_stats(self):
-        cp = copy.deepcopy(self.stats)
-        self.weapon.stats["secondary_attribute"](cp)
+    def run_hooks(self):
+        self.weapon.stats["secondary_attribute"](self)
         for hook in self.hooks:
-            hook(cp)
-        # Cap crit_rate
-        if cp["crit_rate"] > 1:
-            cp["crit_rate"] = 1
-        return cp
+            hook(self)
+        if self.stats["crit_rate"] > 1:
+            self.stats["crit_rate"] = 1
+
+    def current_stats(self):
+        cp = copy.deepcopy(self)
+        cp.run_hooks()
+        return cp.stats
 
     # Return the damage dealt to the enemy
     def attack(self, enemy: Enemy, **kwargs) -> int:
